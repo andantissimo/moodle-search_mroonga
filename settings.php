@@ -2,8 +2,6 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-/* @var $DB mysqli_native_moodle_database */
-/* @var $PAGE moodle_page */
 /* @var $ADMIN admin_root */
 /* @var $settings admin_settingpage */
 
