@@ -4,7 +4,8 @@ WORK IN PROGRESS
 
 ## Requirements
 
-Moodle 3.1 or later
+* Moodle 3.1 or later
+* Mroonga v6.03 or later
 
 ## Installation
 

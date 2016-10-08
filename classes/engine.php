@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Mroonga search engine
+ */
 namespace search_mroonga;
 
 defined('MOODLE_INTERNAL') || die;
@@ -53,12 +55,7 @@ class engine extends \core_search\engine {
                FROM information_schema.tables
               WHERE table_schema = DATABASE()
                 AND table_name   = '{search_mroonga}'");
-        if (!$engine)
-            return false;
-        if ($engine === 'Mroonga')
-            return true;
-        // Hmm..., something wrong.
-        throw new \core_search\engine_exception('invalidengine', 'search_mroonga');
+        return $engine === 'Mroonga';
     }
 
     /**
@@ -176,9 +173,8 @@ class engine extends \core_search\engine {
         global $DB;
         $new = (object)$document->export_for_engine();
         $conditions = [
-            'contextid' => $new->contextid,
-            'itemid'    => $new->itemid,
-          //'areaid'    => $new->areaid,
+            'areaid' => $new->areaid,
+            'itemid' => $new->itemid,
         ];
         if ($id = $DB->get_field('search_mroonga', 'id', $conditions)) {
             $new->id = $id;

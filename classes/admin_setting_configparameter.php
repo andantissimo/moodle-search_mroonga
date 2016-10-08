@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Mroonga search engine
+ */
 namespace search_mroonga;
 
 defined('MOODLE_INTERNAL') || die;

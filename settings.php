@@ -1,4 +1,9 @@
 <?php
+/**
+ * Mroonga search engine
+ */
+
+use search_mroonga as mrn;
 
 defined('MOODLE_INTERNAL') || die;
 
@@ -7,17 +12,17 @@ defined('MOODLE_INTERNAL') || die;
 
 if ($ADMIN->fulltree) {
     if (!during_initial_install()) {
-        if (!search_mroonga\engine::is_supported()) {
+        if (!mrn\engine::is_supported()) {
             $settings->add(
                 new admin_setting_heading('search_mroonga_settings',
-                    '', new lang_string('notsupported', 'search_mroonga'))
+                    '', new lang_string('notsupported', 'search_mroonga', mrn\engine::REQUIRED_VERSION))
                 );
         } else {
             $settings->add(
-                new search_mroonga\admin_setting_configparameter('tokenizer')
+                new mrn\admin_setting_configparameter('tokenizer')
                 );
             $settings->add(
-                new search_mroonga\admin_setting_configparameter('normalizer')
+                new mrn\admin_setting_configparameter('normalizer')
                 );
         }
     }
