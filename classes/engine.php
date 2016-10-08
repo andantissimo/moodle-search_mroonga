@@ -62,11 +62,12 @@ class engine extends \core_search\engine {
      * Creates Mroonga search table.
      *
      * @global \mysqli_native_moodle_database $DB
+     * @param string $tokenizer
+     * @param string $normalizer
      */
-    public static function create_table() {
+    public static function create_table($tokenizer, $normalizer) {
         global $DB;
-        $parameters = sprintf('tokenizer "%s", normalizer "%s"',
-            self::DEFAULT_TOKENIZER, self::DEFAULT_NORMALIZER);
+        $parameters = sprintf('tokenizer "%s", normalizer "%s"', $tokenizer, $normalizer);
         $DB->execute("
             CREATE TABLE `{search_mroonga}` (
                 `id`           BIGINT(10)   NOT NULL AUTO_INCREMENT,
@@ -154,7 +155,7 @@ class engine extends \core_search\engine {
      */
     public function is_server_ready() {
         if (!self::table_exists()) try {
-            self::create_table();
+            self::create_table(self::DEFAULT_TOKENIZER, self::DEFAULT_NORMALIZER);
         } catch (\moodle_exception $ex) {
             return $ex->getMessage();
         }

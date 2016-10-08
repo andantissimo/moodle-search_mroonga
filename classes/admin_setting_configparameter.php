@@ -116,13 +116,17 @@ class admin_setting_configparameter extends \admin_setting_configselect {
             return true;
         }
 
-        // altering index may take a long time if many records exist.
-        \core_php_time_limit::raise();
-        $DB->execute(
-            "ALTER TABLE {search_mroonga}
-              DROP INDEX ft,
-            ADD FULLTEXT ft (title, content, description1, description2)
-                 COMMENT 'tokenizer \"$tokenizer\", normalizer \"$normalizer\"'");
+        if (!engine::table_exists()) {
+            engine::create_table($tokenizer, $normalizer);
+        } else {
+            // altering index may take a long time if many records exist.
+            \core_php_time_limit::raise();
+            $DB->execute(
+                "ALTER TABLE {search_mroonga}
+                  DROP INDEX ft,
+                ADD FULLTEXT ft (title, content, description1, description2)
+                     COMMENT 'tokenizer \"$tokenizer\", normalizer \"$normalizer\"'");
+        }
 
         // purge cache
         self::$current = null;
