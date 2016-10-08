@@ -43,6 +43,29 @@ class engine extends \core_search\engine {
     }
 
     /**
+     * Returns supported fulltext parameters.
+     *
+     * @global \mysqli_native_moodle_database $DB
+     * @return string[][]
+     */
+    public static function get_supported_parameters() {
+        global $DB;
+        $supported = [ 'tokenizer' => [], 'normalizer' => [] ];
+        $list = $DB->get_record_sql(
+            "SELECT mroonga_command('tokenizer_list')  AS tokenizers,
+                    mroonga_command('normalizer_list') AS normalizers");
+        foreach (array_column(json_decode($list->tokenizers, true), 'name') as $value) {
+            if (in_array($value, [ 'TokenDelimit', 'TokenDelimitNull', 'TokenRegexp' ]))
+                continue;
+            $supported['tokenizer'][$value] = preg_replace('/^Token/', '', $value);
+        }
+        foreach (array_column(json_decode($list->normalizers, true), 'name') as $value) {
+            $supported['normalizer'][$value] = preg_replace('/^Normalizer/', '', $value);
+        }
+        return $supported;
+    }
+
+    /**
      * Does the Mroonga search table exist.
      *
      * @global \mysqli_native_moodle_database $DB
@@ -67,9 +90,9 @@ class engine extends \core_search\engine {
      */
     public static function create_table($tokenizer, $normalizer) {
         global $DB;
-        $parameters = sprintf('tokenizer "%s", normalizer "%s"', $tokenizer, $normalizer);
+        $comment = sprintf('tokenizer "%s", normalizer "%s"', $tokenizer, $normalizer);
         $DB->execute("
-            CREATE TABLE `{search_mroonga}` (
+            CREATE TABLE {search_mroonga} (
                 `id`           BIGINT(10)   NOT NULL AUTO_INCREMENT,
                 `itemid`       BIGINT(10)   NOT NULL,
                 `title`        VARCHAR(255) NOT NULL,
@@ -89,8 +112,47 @@ class engine extends \core_search\engine {
                 INDEX `courseid` (`courseid`),
                 INDEX `modified` (`modified`),
                 INDEX `itemid` (`itemid`),
-                FULLTEXT `ft` (`title`, `content`, `description1`, `description2`) COMMENT '$parameters'
+                FULLTEXT `ft` (`title`, `content`, `description1`, `description2`) COMMENT '$comment'
             ) ENGINE=Mroonga DEFAULT CHARSET=utf8");
+    }
+
+    /**
+     * Alters Mroonga search table.
+     *
+     * @global \mysqli_native_moodle_database $DB
+     * @param string $tokenizer
+     * @param string $normalizer
+     */
+    public static function alter_table($tokenizer, $normalizer) {
+        global $DB;
+        $comment = sprintf('tokenizer "%s", normalizer "%s"', $tokenizer, $normalizer);
+        $DB->execute(
+            "ALTER TABLE {search_mroonga}
+              DROP INDEX `ft`,
+            ADD FULLTEXT `ft` (`title`, `content`, `description1`, `description2`) COMMENT '$comment'");
+    }
+
+    /**
+     * Returns current fulltext parameters.
+     *
+     * @global \mysqli_native_moodle_database $DB
+     * @return string[]
+     */
+    public static function get_current_parameters() {
+        global $DB;
+        $current = [ 'tokenizer' => null, 'normalizer' => null ];
+        $comment = $DB->get_field_sql(
+            "SELECT index_comment
+               FROM information_schema.statistics
+              WHERE table_schema = DATABASE()
+                AND table_name   = '{search_mroonga}'
+                AND column_name  = 'content'");
+        $matches = [];
+        if (preg_match('/tokenizer\s+"([^"]*)"/i', $comment, $matches))
+            $current['tokenizer'] = $matches[1];
+        if (preg_match('/normalizer\s+"([^"]*)"/i', $comment, $matches))
+            $current['normalizer'] = $matches[1];
+        return $current;
     }
 
     /**
