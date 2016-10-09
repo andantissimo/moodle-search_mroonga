@@ -1,11 +1,11 @@
 # Mroonga search engine
 
-WORK IN PROGRESS
+Moodle global search plugin that uses Mroonga as its backend
 
 ## Requirements
 
 * Moodle 3.1 or later
-* Mroonga v6.03 or later
+* [Mroonga](http://mroonga.org) v6.03 or later
 
 ## Installation
 
