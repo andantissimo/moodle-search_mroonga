@@ -24,6 +24,16 @@ class engine extends \core_search\engine {
     const DEFAULT_NORMALIZER = 'NormalizerMySQLUnicodeCIExceptKanaCIKanaWithVoicedSoundMark';
 
     /**
+     * @var string[] Fields that can be highlighted.
+     */
+    protected $highlightfields = [ 'title', 'content', 'description1', 'description2' ];
+
+    /**
+     * @var int Count of records for last query.
+     */
+    protected $count;
+
+    /**
      * Is the Mroonga storage engine supported.
      *
      * @global \mysqli_native_moodle_database $DB
@@ -156,6 +166,24 @@ class engine extends \core_search\engine {
     }
 
     /**
+     * Splits query into words or phrases.
+     *
+     * @param string $query
+     * @return string[]
+     */
+    protected static function query_to_words($query) {
+        $phrases = [];
+        $q = preg_replace_callback('/"([^"]*)"/u', function ($m) use (&$phrases) {
+            $phrases[] = $m[1];
+            return '';
+        }, $query);
+        $words = array_filter(preg_split('/\s+/u', $q, PREG_SPLIT_NO_EMPTY), function ($w) {
+            return $w !== 'OR' && $w[0] !== '-';
+        });
+        return array_merge($phrases, $words);
+    }
+
+    /**
      * Constructor
      */
     public function __construct() {
@@ -187,7 +215,7 @@ class engine extends \core_search\engine {
      * @return int
      */
     public function get_query_total_count() {
-        return \core_search\manager::MAX_RESULTS;
+        return $this->count;
     }
 
     /**
@@ -266,11 +294,13 @@ class engine extends \core_search\engine {
     public function execute_query($filters, $usercontexts, $limit = 0) {
         global $DB, $USER;
 
+        $this->count = 0;
+
         $criteria = [ 'MATCH(title, content, description1, description2) AGAINST(:q IN BOOLEAN MODE)' ];
         $params = [ 'q' => "*D+ {$filters->q}" ];
-        if (!empty($filters->title)) {
+        if (strlen($title = trim($filters->title))) {
             $criteria[] = $DB->sql_like('title', ':title', false, false);
-            $params['title'] = "%{$filters->title}%";
+            $params['title'] = "%{$title}%";
         }
         if (!empty($filters->areaids)) {
             list ($q, $p) = $DB->get_in_or_equal($filters->areaids, SQL_PARAMS_NAMED, 'areaid');
@@ -304,6 +334,7 @@ class engine extends \core_search\engine {
         $select = implode(' AND ', $criteria);
         $records = $DB->get_records_select('search_mroonga', $select, $params, '', '*', 0, $limit);
         $documents = [];
+        $keywords = implode(' ', self::query_to_words($filters->q));
         foreach ($records as $record) {
             if ($record->owneruserid != \core_search\manager::NO_OWNER_ID && $record->owneruserid != $USER->id)
                 continue;
@@ -313,10 +344,15 @@ class engine extends \core_search\engine {
             $access = $searcharea->check_access($record->itemid);
             switch ($access) {
             case \core_search\manager::ACCESS_GRANTED:
+                foreach ($this->highlightfields as $field)
+                    $record->$field = highlight($keywords, $record->$field);
                 $documents[] = $this->to_document($searcharea, (array)$record);
                 break;
             }
         }
+
+        $this->count = count($documents);
+
         return $documents;
     }
 

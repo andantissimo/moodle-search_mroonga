@@ -53,7 +53,7 @@ class document extends \core_search\document {
      * @return string HTML text to be renderer
      */
     protected function format_text($text) {
-        return s($text);
+        return $text;
     }
 
     /**
