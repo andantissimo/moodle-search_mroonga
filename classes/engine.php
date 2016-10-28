@@ -169,18 +169,21 @@ class engine extends \core_search\engine {
      * Splits query into words or phrases.
      *
      * @param string $query
-     * @return string[]
+     * @return string[][] [ $words, $phrases ]
      */
     protected static function query_to_words($query) {
         $phrases = [];
-        $q = preg_replace_callback('/"([^"]*)"/u', function ($m) use (&$phrases) {
-            $phrases[] = $m[1];
+        $q = preg_replace_callback('/(-?)"([^"]*)"/u', function ($m) use (&$phrases) {
+            if ($m[1] !== '-' && $m[2] !== '')
+                $phrases[] = $m[2];
             return '';
         }, $query);
-        $words = array_filter(preg_split('/\s+/u', $q, PREG_SPLIT_NO_EMPTY), function ($w) {
-            return $w !== 'OR' && $w[0] !== '-';
+        $q = str_replace([ '(', ')', 'OR', '　' ], ' ', $q);
+        $words = preg_split('/\s+/u', $q, PREG_SPLIT_NO_EMPTY);
+        $words = array_filter($words, function ($w) {
+            return $w !== '' && $w[0] !== '-';
         });
-        return array_merge($phrases, $words);
+        return [ $words, $phrases ];
     }
 
     /**
@@ -296,6 +299,10 @@ class engine extends \core_search\engine {
 
         $this->count = 0;
 
+        list ($words, $phrases) = self::query_to_words($filters->q);
+        if (empty($words) && empty($phrases))
+            return [];
+
         $criteria = [ 'MATCH(title, content, description1, description2) AGAINST(:q IN BOOLEAN MODE)' ];
         $params = [ 'q' => "*D+ {$filters->q}" ];
         if (strlen($title = trim($filters->title))) {
@@ -334,7 +341,12 @@ class engine extends \core_search\engine {
         $select = implode(' AND ', $criteria);
         $records = $DB->get_records_select('search_mroonga', $select, $params, '', '*', 0, $limit);
         $documents = [];
-        $keywords = implode(' ', self::query_to_words($filters->q));
+        $variations = [];
+        foreach ($words as $w) {
+            $variations[] = mb_convert_kana($w, 'HcV');
+            $variations[] = mb_convert_kana($w, 'KCV');
+        }
+        $needle = implode(' ', array_unique(array_merge($words, $phrases, $variations)));
         foreach ($records as $record) {
             if ($record->owneruserid != \core_search\manager::NO_OWNER_ID && $record->owneruserid != $USER->id)
                 continue;
@@ -345,7 +357,7 @@ class engine extends \core_search\engine {
             switch ($access) {
             case \core_search\manager::ACCESS_GRANTED:
                 foreach ($this->highlightfields as $field)
-                    $record->$field = highlight($keywords, $record->$field);
+                    $record->$field = highlight($needle, $record->$field);
                 $documents[] = $this->to_document($searcharea, (array)$record);
                 break;
             }
