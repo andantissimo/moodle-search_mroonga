@@ -339,7 +339,15 @@ class engine extends \core_search\engine {
             $params += $p;
         }
         $select = implode(' AND ', $criteria);
-        $records = $DB->get_records_select('search_mroonga', $select, $params, '', '*', 0, $limit);
+        $records = [];
+        try {
+            $records = $DB->get_records_select('search_mroonga', $select, $params, '', '*', 0, $limit);
+        } catch (\dml_read_exception $ex) {
+            $m = [];
+            if (!preg_match('/<Syntax error: <(.*)>>$/us', $ex->error, $m))
+                throw $ex;
+            $this->queryerror = $m[1];
+        }
         $documents = [];
         $variations = [];
         foreach ($words as $w) {
