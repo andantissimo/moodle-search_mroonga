@@ -258,13 +258,15 @@ class engine extends \core_search\engine {
     /**
      * Adds a document to the search engine.
      *
-     * @global \moodle_database $DB
+     * @global \mysqli_native_moodle_database $DB
      * @param document $document
      * @param bool     $fileindexing True if file indexing is to be used
      * @return bool    False if the file was skipped or failed, true on success
      */
     public function add_document($document, $fileindexing = false) {
         global $DB;
+        if ($fileindexing)
+            return false;
         $new = (object)$document->export_for_engine();
         $conditions = [
             'areaid' => $new->areaid,
@@ -287,7 +289,7 @@ class engine extends \core_search\engine {
      *
      * Engines should reasonably attempt to fill up to limit with valid results if they are available.
      *
-     * @global \moodle_database $DB
+     * @global \mysqli_native_moodle_database $DB
      * @global stdClass $USER
      * @param  stdClass $filters Query and filters to apply.
      * @param  array    $usercontexts Contexts where the user has access. True if the user can access all contexts.
@@ -379,7 +381,7 @@ class engine extends \core_search\engine {
     /**
      * Delete all documents.
      *
-     * @global \moodle_database $DB
+     * @global \mysqli_native_moodle_database $DB
      * @param string $areaid To filter by area
      * @return void
      */
