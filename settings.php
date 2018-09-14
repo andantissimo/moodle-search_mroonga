@@ -8,9 +8,6 @@ use search_mroonga as mrn;
 
 defined('MOODLE_INTERNAL') || die;
 
-/* @var $ADMIN admin_root */
-/* @var $settings admin_settingpage */
-
 if ($ADMIN->fulltree) {
     if (!during_initial_install()) {
         if (!mrn\engine::is_supported()) {
@@ -19,12 +16,8 @@ if ($ADMIN->fulltree) {
                     '', new lang_string('notsupported', 'search_mroonga', mrn\engine::REQUIRED_VERSION))
                 );
         } else {
-            $settings->add(
-                new mrn\admin_setting_configparameter('tokenizer')
-                );
-            $settings->add(
-                new mrn\admin_setting_configparameter('normalizer')
-                );
+            $settings->add(new mrn\admin_setting_configparser('tokenizer'));
+            $settings->add(new mrn\admin_setting_configparser('normalizer'));
         }
     }
 }

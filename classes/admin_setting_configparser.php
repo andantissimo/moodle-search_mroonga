@@ -8,10 +8,7 @@ namespace search_mroonga;
 
 defined('MOODLE_INTERNAL') || die;
 
-/**
- * Select one parameter from Mroonga index options.
- */
-class admin_setting_configparameter extends \admin_setting_configselect {
+class admin_setting_configparser extends \admin_setting_configselect {
     /**
      * @var string[]
      */
@@ -33,7 +30,7 @@ class admin_setting_configparameter extends \admin_setting_configselect {
     /**
      * @var string[]
      */
-    private static $written = null;
+    private static $writing = null;
 
     /**
      * Constructor
@@ -42,9 +39,11 @@ class admin_setting_configparameter extends \admin_setting_configselect {
      */
     public function __construct($name) {
         if (self::$supported === null)
-            self::$supported = engine::get_supported_parameters();
+            self::$supported = engine::get_supported_parsers();
         if (self::$current === null)
-            self::$current = engine::get_current_parameters();
+            self::$current = engine::get_current_parser();
+        if (self::$writing === null)
+            self::$writing = [ 'tokenizer' => null, 'normalizer' => null ];
         parent::__construct("search_mroonga/$name",
             new \lang_string("{$name}", 'search_mroonga'),
             new \lang_string("{$name}_desc", 'search_mroonga'),
@@ -73,31 +72,22 @@ class admin_setting_configparameter extends \admin_setting_configselect {
         if (!isset(self::$supported[$name][$value]))
             return false;
 
-        if (self::$written === null)
-            self::$written = [ 'tokenizer' => null, 'normalizer' => null ];
-        self::$written[$name] = $value;
+        self::$writing[$name] = $value;
 
-        $tokenizer  = self::$written['tokenizer'];
-        $normalizer = self::$written['normalizer'];
-        if ($tokenizer === null || $normalizer === null)
+        if (in_array(null, self::$writing, true))
             return true;
 
-        // alter is not necessary.
-        if ($tokenizer  === self::$current['tokenizer'] &&
-            $normalizer === self::$current['normalizer']) {
-            return true;
+        if (self::$writing != self::$current) {
+            if (!engine::table_exists()) {
+                engine::create_table(self::$writing['tokenizer'], self::$writing['normalizer']);
+            } else {
+                // altering index may take a long time if many records exist.
+                \core_php_time_limit::raise();
+                engine::alter_table(self::$writing['tokenizer'], self::$writing['normalizer']);
+            }
         }
 
-        if (!engine::table_exists()) {
-            engine::create_table($tokenizer, $normalizer);
-        } else {
-            // altering index may take a long time if many records exist.
-            \core_php_time_limit::raise();
-            engine::alter_table($tokenizer, $normalizer);
-        }
-
-        // purge cache
-        self::$current = null;
+        self::$current = self::$writing;
 
         return true;
     }

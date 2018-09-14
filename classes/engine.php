@@ -55,12 +55,12 @@ class engine extends \core_search\engine {
     }
 
     /**
-     * Returns supported fulltext parameters.
+     * Returns supported fulltext parsers.
      *
      * @global \mysqli_native_moodle_database $DB
      * @return string[][]
      */
-    public static function get_supported_parameters() {
+    public static function get_supported_parsers() {
         global $DB;
         $supported = [ 'tokenizer' => [], 'normalizer' => [] ];
         $list = $DB->get_record_sql(
@@ -125,7 +125,7 @@ class engine extends \core_search\engine {
                 INDEX `modified` (`modified`),
                 INDEX `itemid` (`itemid`),
                 FULLTEXT `ft` (`title`, `content`, `description1`, `description2`) COMMENT '$comment'
-            ) ENGINE=Mroonga DEFAULT CHARSET=utf8");
+            ) ENGINE=Mroonga DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     }
 
     /**
@@ -145,12 +145,12 @@ class engine extends \core_search\engine {
     }
 
     /**
-     * Returns current fulltext parameters.
+     * Returns current fulltext parser.
      *
      * @global \mysqli_native_moodle_database $DB
      * @return string[]
      */
-    public static function get_current_parameters() {
+    public static function get_current_parser() {
         global $DB;
         $current = [ 'tokenizer' => null, 'normalizer' => null ];
         $comment = $DB->get_field_sql(
