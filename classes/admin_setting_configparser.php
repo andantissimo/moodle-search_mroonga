@@ -12,7 +12,7 @@ class admin_setting_configparser extends \admin_setting_configselect {
     /**
      * @var string[]
      */
-    private static $defaults = [
+    private static $default = [
         'tokenizer'  => engine::DEFAULT_TOKENIZER,
         'normalizer' => engine::DEFAULT_NORMALIZER,
     ];
@@ -47,7 +47,7 @@ class admin_setting_configparser extends \admin_setting_configselect {
         parent::__construct("search_mroonga/$name",
             new \lang_string("{$name}", 'search_mroonga'),
             new \lang_string("{$name}_desc", 'search_mroonga'),
-            self::$defaults[$name],
+            self::$default[$name],
             self::$supported[$name]);
     }
 
