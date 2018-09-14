@@ -1,8 +1,9 @@
 <?php
 /**
- * Mroonga search engine
+ * @package   search_mroonga
+ * @copyright 2018 MALU {@link https://github.com/andantissimo}
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 use search_mroonga as mrn;
 
 defined('MOODLE_INTERNAL') || die;
